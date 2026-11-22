@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>授权中转</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;margin:0;padding:40px 22px;text-align:center;color:#222;background:#f6f7f9}
+  .card{max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:28px 22px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  h2{margin:0 0 10px;font-size:20px}
+  p{color:#666;font-size:15px;line-height:1.6;margin:8px 0}
+  a.btn,button{display:block;width:100%;box-sizing:border-box;margin:14px 0 0;padding:14px;border:0;border-radius:12px;font-size:17px;text-decoration:none;cursor:pointer}
+  a.btn{background:#1a73e8;color:#fff}
+  button{background:#eef1f5;color:#222}
+  .err{color:#b42318}
+</style>
+</head>
+<body>
+<div class="card" id="box"><h2>处理中…</h2></div>
+<script>
+// 宿舍局域网里 life-assistant 的回调地址
+var LAN = "http://10.10.10.1:8088/oauth/google/callback";
+
+var q = location.search, box = document.getElementById("box");
+var p = new URLSearchParams(q);
+if (!p.get("state") || !(p.get("code") || p.get("error"))) {
+  box.innerHTML = "<h2>这里是授权中转页</h2><p>没有授权参数。请从 Telegram 机器人发来的按钮进入。</p>";
+} else if (p.get("error")) {
+  box.innerHTML = "<h2 class='err'>授权被取消：" + p.get("error") + "</h2><p>回 Telegram 发 /auth 重新来一次。</p>";
+} else {
+  var target = LAN + q;
+  box.innerHTML =
+    "<h2>已拿到授权，正在交给机器人…</h2>" +
+    "<p>在宿舍网络里会自动完成。</p>" +
+    "<a class='btn' href='" + target + "'>没反应？点这里完成（宿舍网络）</a>" +
+    "<button id='cp'>不在宿舍：复制网址发给机器人</button>" +
+    "<p style='font-size:13px'>网址里的 code 约 10 分钟内有效，只能用一次。</p>";
+  document.getElementById("cp").onclick = function () {
+    var t = location.href, b = this;
+    var ok = function () { b.textContent = "✅ 已复制，去 Telegram 粘贴发送"; };
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(ok, function () { prompt("长按复制：", t); });
+    else prompt("长按复制：", t);
+  };
+  // 只自动跳一次：从卡住的页面返回时不会再跳，方便点“复制”
+  var key = "fwd:" + p.get("state");
+  if (!sessionStorage.getItem(key)) {
+    sessionStorage.setItem(key, "1");
+    setTimeout(function () { location.href = target; }, 600);
+  }
+}
+</script>
+</body>
+</html>
